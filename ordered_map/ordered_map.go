@@ -21,9 +21,24 @@ type orderedMap[K comparable, V any] struct {
 	list *list.List
 }
 
+func (om *orderedMap[K, V]) String() string {
+	orderedMapString := "OrderedMap["
+	for e := om.list.Front(); e != nil; e = e.Next() {
+		orderedMapString += fmt.Sprintf("%v", e.Value.(*listValue[K, V]))
+		if e.Next() != nil {
+			orderedMapString += " "
+		}
+	}
+	return fmt.Sprintf("%s]", orderedMapString)
+}
+
 type listValue[K comparable, V any] struct {
 	Key   K
 	Value V
+}
+
+func (value *listValue[K, V]) String() string {
+	return fmt.Sprintf("{%v: %v}", value.Key, value.Value)
 }
 
 func NewOrderedMap[K comparable, V any]() OrderedMap[K, V] {
@@ -90,15 +105,4 @@ func (om *orderedMap[K, V]) Iterator() <-chan listValue[K, V] {
 		close(ch)
 	}()
 	return ch
-}
-
-func (om *orderedMap[K, V]) String() string {
-	orderedMapString := "OrderedMap["
-	for e := om.list.Front(); e != nil; e = e.Next() {
-		orderedMapString += fmt.Sprintf("%v:%v", e.Value.(*listValue[K, V]).Key, e.Value.(*listValue[K, V]).Value)
-		if e.Next() != nil {
-			orderedMapString += " "
-		}
-	}
-	return fmt.Sprintf("%s]", orderedMapString)
 }
