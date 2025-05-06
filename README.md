@@ -19,3 +19,7 @@ go get -u github.com/shuaibingn/go-extension
 ### ordered_map
 
 [有序map使用](./ordered_map/README.md)
+
+### ordered_set
+
+[有序set使用](./ordered_set/README.md)
