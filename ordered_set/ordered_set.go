@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-type baseValue comparable
-
-type OrderedSet[T baseValue] interface {
+type OrderedSet[T comparable] interface {
 	Add(items ...T)
 	Remove(items ...T)
 	Clear()
@@ -23,12 +21,12 @@ type OrderedSet[T baseValue] interface {
 	ForEach(fn func(index int, item T) bool)
 }
 
-type orderedSet[T baseValue] struct {
+type orderedSet[T comparable] struct {
 	elems   []T
 	elemMap map[T]int
 }
 
-func NewOrderedSet[T baseValue](items ...T) OrderedSet[T] {
+func NewOrderedSet[T comparable](items ...T) OrderedSet[T] {
 	s := new(orderedSet[T])
 	s.Add(items...)
 	return s
@@ -59,22 +57,25 @@ func (s *orderedSet[T]) Contains(item T) bool {
 }
 
 func (s *orderedSet[T]) Get(index int) (T, bool) {
+	var zero T
 	if index < 0 || index >= len(s.elems) {
-		return *new(T), false
+		return zero, false
 	}
 	return s.elems[index], true
 }
 
 func (s *orderedSet[T]) First() (T, bool) {
+	var zero T
 	if len(s.elems) == 0 {
-		return *new(T), false
+		return zero, false
 	}
 	return s.elems[0], true
 }
 
 func (s *orderedSet[T]) Last() (T, bool) {
+	var zero T
 	if len(s.elems) == 0 {
-		return *new(T), false
+		return zero, false
 	}
 	return s.elems[len(s.elems)-1], true
 }

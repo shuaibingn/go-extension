@@ -1,8 +1,8 @@
 package ordered_map
 
 import (
-	"container/list"
 	"fmt"
+	"strings"
 )
 
 type OrderedMap[K comparable, V any] interface {
@@ -16,93 +16,104 @@ type OrderedMap[K comparable, V any] interface {
 	ForEach(fn func(key K, value V) bool)
 }
 
+type entry[K comparable, V any] struct {
+	key   K
+	value V
+}
+
 type orderedMap[K comparable, V any] struct {
-	m    map[K]*list.Element
-	list *list.List
-}
-
-func (om *orderedMap[K, V]) String() string {
-	orderedMapString := "OrderedMap["
-	for e := om.list.Front(); e != nil; e = e.Next() {
-		orderedMapString += fmt.Sprintf("%v", e.Value.(*listValue[K, V]))
-		if e.Next() != nil {
-			orderedMapString += " "
-		}
-	}
-	return fmt.Sprintf("%s]", orderedMapString)
-}
-
-type listValue[K comparable, V any] struct {
-	Key   K
-	Value V
-}
-
-func (value *listValue[K, V]) String() string {
-	return fmt.Sprintf("{%v: %v}", value.Key, value.Value)
+	entries []entry[K, V]
+	index   map[K]int
 }
 
 func NewOrderedMap[K comparable, V any]() OrderedMap[K, V] {
 	return &orderedMap[K, V]{
-		m:    make(map[K]*list.Element),
-		list: list.New(),
+		index: make(map[K]int),
 	}
 }
 
 func (om *orderedMap[K, V]) Set(key K, value V) {
-	if elem, ok := om.m[key]; ok {
-		elem.Value.(*listValue[K, V]).Value = value
+	if idx, ok := om.index[key]; ok {
+		om.entries[idx].value = value
 		return
 	}
-	om.m[key] = om.list.PushBack(&listValue[K, V]{Key: key, Value: value})
+
+	om.index[key] = len(om.entries)
+	om.entries = append(om.entries, entry[K, V]{key: key, value: value})
 }
 
 func (om *orderedMap[K, V]) Get(key K) (V, bool) {
-	if elem, ok := om.m[key]; ok {
-		return elem.Value.(*listValue[K, V]).Value, true
+	if idx, ok := om.index[key]; ok {
+		return om.entries[idx].value, true
 	}
 	var zero V
 	return zero, false
 }
 
 func (om *orderedMap[K, V]) Remove(key K) {
-	if elem, ok := om.m[key]; ok {
-		om.list.Remove(elem)
-		delete(om.m, key)
+	idx, ok := om.index[key]
+	if !ok {
+		return
 	}
+
+	delete(om.index, key)
+
+	n := 0
+	for i, e := range om.entries {
+		if i != idx {
+			om.entries[n] = e
+			om.index[e.key] = n
+			n++
+		}
+	}
+
+	var zero entry[K, V]
+	om.entries[len(om.entries)-1] = zero
+	om.entries = om.entries[:n]
 }
 
 func (om *orderedMap[K, V]) Keys() []K {
-	keys := make([]K, 0, om.list.Len())
-	for e := om.list.Front(); e != nil; e = e.Next() {
-		keys = append(keys, e.Value.(*listValue[K, V]).Key)
+	keys := make([]K, len(om.entries))
+	for i, e := range om.entries {
+		keys[i] = e.key
 	}
 	return keys
 }
 
 func (om *orderedMap[K, V]) Values() []V {
-	values := make([]V, 0, om.list.Len())
-	for e := om.list.Front(); e != nil; e = e.Next() {
-		values = append(values, e.Value.(*listValue[K, V]).Value)
+	values := make([]V, len(om.entries))
+	for i, e := range om.entries {
+		values[i] = e.value
 	}
 	return values
 }
 
 func (om *orderedMap[K, V]) Clear() {
-	om.m = make(map[K]*list.Element)
-	om.list.Init()
+	om.entries = nil
+	om.index = make(map[K]int)
 }
 
 func (om *orderedMap[K, V]) Len() int {
-	return om.list.Len()
+	return len(om.entries)
 }
 
-// ForEach iterates over all key-value pairs in order.
-// The iteration stops if fn returns false.
 func (om *orderedMap[K, V]) ForEach(fn func(key K, value V) bool) {
-	for e := om.list.Front(); e != nil; e = e.Next() {
-		lv := e.Value.(*listValue[K, V])
-		if !fn(lv.Key, lv.Value) {
+	for _, e := range om.entries {
+		if !fn(e.key, e.value) {
 			break
 		}
 	}
+}
+
+func (om *orderedMap[K, V]) String() string {
+	var b strings.Builder
+	b.WriteString("OrderedMap[")
+	for i, e := range om.entries {
+		if i > 0 {
+			b.WriteString(" ")
+		}
+		fmt.Fprintf(&b, "{%v: %v}", e.key, e.value)
+	}
+	b.WriteString("]")
+	return b.String()
 }

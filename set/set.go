@@ -14,6 +14,7 @@ type Set[T comparable] interface {
 	Slice() []T
 	Equal(other Set[T]) bool
 	Join(sep string) string
+	ForEach(fn func(item T) bool)
 }
 
 type set[T comparable] map[T]struct{}
@@ -88,6 +89,14 @@ func (s set[T]) Join(sep string) string {
 		first = false
 	}
 	return b.String()
+}
+
+func (s set[T]) ForEach(fn func(item T) bool) {
+	for item := range s {
+		if !fn(item) {
+			break
+		}
+	}
 }
 
 func (s set[T]) String() string {
