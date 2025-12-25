@@ -5,24 +5,29 @@ import (
 	"strings"
 )
 
-type basevalue comparable
+type baseValue comparable
 
-type OrderedSet[T basevalue] interface {
+type OrderedSet[T baseValue] interface {
 	Add(items ...T)
-	Last() (T, int)
-	Index(item T) int
 	Remove(items ...T)
+	Clear()
+	Contains(item T) bool
+	Index(item T) int
+	Get(index int) (T, bool)
+	First() (T, bool)
+	Last() (T, bool)
 	Len() int
 	Join(sep string) string
-	Iterator() <-chan T
+	Slice() []T
+	ForEach(fn func(index int, item T) bool)
 }
 
-type orderedSet[T basevalue] struct {
+type orderedSet[T baseValue] struct {
 	elems   []T
-	elemMap map[T]int
+	elemMap map[T]struct{}
 }
 
-func NewOrderedSet[T basevalue](items ...T) OrderedSet[T] {
+func NewOrderedSet[T baseValue](items ...T) OrderedSet[T] {
 	s := new(orderedSet[T])
 	s.Add(items...)
 	return s
@@ -30,52 +35,74 @@ func NewOrderedSet[T basevalue](items ...T) OrderedSet[T] {
 
 func (s *orderedSet[T]) Add(items ...T) {
 	if s.elemMap == nil {
-		s.elemMap = make(map[T]int, len(items))
+		s.elemMap = make(map[T]struct{}, len(items))
 	}
 
-	startIndex := len(s.elems)
 	for _, item := range items {
 		if _, ok := s.elemMap[item]; ok {
 			continue
 		}
 		s.elems = append(s.elems, item)
-		s.elemMap[item] = startIndex
-		startIndex++
+		s.elemMap[item] = struct{}{}
 	}
 }
 
-func (s *orderedSet[T]) Last() (T, int) {
-	if len(s.elems) == 0 {
-		return *new(T), -1
+func (s *orderedSet[T]) Clear() {
+	s.elems = nil
+	s.elemMap = nil
+}
+
+func (s *orderedSet[T]) Contains(item T) bool {
+	_, ok := s.elemMap[item]
+	return ok
+}
+
+func (s *orderedSet[T]) Get(index int) (T, bool) {
+	if index < 0 || index >= len(s.elems) {
+		return *new(T), false
 	}
-	lastElem := s.elems[len(s.elems)-1]
-	return lastElem, s.elemMap[lastElem]
+	return s.elems[index], true
+}
+
+func (s *orderedSet[T]) First() (T, bool) {
+	if len(s.elems) == 0 {
+		return *new(T), false
+	}
+	return s.elems[0], true
+}
+
+func (s *orderedSet[T]) Last() (T, bool) {
+	if len(s.elems) == 0 {
+		return *new(T), false
+	}
+	return s.elems[len(s.elems)-1], true
 }
 
 func (s *orderedSet[T]) Index(item T) int {
 	if _, ok := s.elemMap[item]; !ok {
 		return -1
 	}
-	return s.elemMap[item]
+
+	for i, elem := range s.elems {
+		if elem == item {
+			return i
+		}
+	}
+	return -1
 }
 
 func (s *orderedSet[T]) Remove(items ...T) {
-	toRemove := make(map[T]struct{})
 	for _, item := range items {
-		toRemove[item] = struct{}{}
+		delete(s.elemMap, item)
 	}
 
 	newElems := make([]T, 0, len(s.elems))
-	newElemMap := make(map[T]int)
 	for _, elem := range s.elems {
-		if _, ok := toRemove[elem]; !ok {
+		if _, ok := s.elemMap[elem]; ok {
 			newElems = append(newElems, elem)
-			newElemMap[elem] = len(newElems) - 1
 		}
 	}
-
 	s.elems = newElems
-	s.elemMap = newElemMap
 }
 
 func (s *orderedSet[T]) Len() int {
@@ -88,28 +115,27 @@ func (s *orderedSet[T]) Join(sep string) string {
 	}
 
 	var b strings.Builder
-	b.Grow(s.Len()*2 - 1)
-
-	i := 0
-	for _, item := range s.elems {
-		b.WriteString(fmt.Sprintf("%v", item))
-		i++
-		if i < s.Len() {
+	for i, item := range s.elems {
+		if i > 0 {
 			b.WriteString(sep)
 		}
+		_, _ = fmt.Fprintf(&b, "%v", item)
 	}
 	return b.String()
 }
 
-func (s *orderedSet[T]) Iterator() <-chan T {
-	ch := make(chan T, len(s.elems))
-	go func() {
-		for _, item := range s.elems {
-			ch <- item
+func (s *orderedSet[T]) ForEach(fn func(index int, item T) bool) {
+	for i, item := range s.elems {
+		if !fn(i, item) {
+			break
 		}
-		close(ch)
-	}()
-	return ch
+	}
+}
+
+func (s *orderedSet[T]) Slice() []T {
+	result := make([]T, len(s.elems))
+	copy(result, s.elems)
+	return result
 }
 
 func (s *orderedSet[T]) String() string {
