@@ -1,4 +1,4 @@
-package set
+package extension
 
 import (
 	"fmt"
@@ -106,3 +106,4 @@ func (s set[T]) String() string {
 	b.WriteString("}")
 	return b.String()
 }
+

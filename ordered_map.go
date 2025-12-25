@@ -1,4 +1,4 @@
-package ordered_map
+package extension
 
 import (
 	"fmt"
@@ -16,13 +16,13 @@ type OrderedMap[K comparable, V any] interface {
 	ForEach(fn func(key K, value V) bool)
 }
 
-type entry[K comparable, V any] struct {
+type mapEntry[K comparable, V any] struct {
 	key   K
 	value V
 }
 
 type orderedMap[K comparable, V any] struct {
-	entries []entry[K, V]
+	entries []mapEntry[K, V]
 	index   map[K]int
 }
 
@@ -39,7 +39,7 @@ func (om *orderedMap[K, V]) Set(key K, value V) {
 	}
 
 	om.index[key] = len(om.entries)
-	om.entries = append(om.entries, entry[K, V]{key: key, value: value})
+	om.entries = append(om.entries, mapEntry[K, V]{key: key, value: value})
 }
 
 func (om *orderedMap[K, V]) Get(key K) (V, bool) {
@@ -67,7 +67,7 @@ func (om *orderedMap[K, V]) Remove(key K) {
 		}
 	}
 
-	var zero entry[K, V]
+	var zero mapEntry[K, V]
 	om.entries[len(om.entries)-1] = zero
 	om.entries = om.entries[:n]
 }
@@ -117,3 +117,4 @@ func (om *orderedMap[K, V]) String() string {
 	b.WriteString("]")
 	return b.String()
 }
+

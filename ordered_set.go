@@ -1,4 +1,4 @@
-package ordered_set
+package extension
 
 import (
 	"fmt"
@@ -134,7 +134,7 @@ func (s *orderedSet[T]) Join(sep string) string {
 		if i > 0 {
 			b.WriteString(sep)
 		}
-		_, _ = fmt.Fprintf(&b, "%v", item)
+		fmt.Fprintf(&b, "%v", item)
 	}
 	return b.String()
 }
@@ -153,9 +153,9 @@ func (s *orderedSet[T]) Slice() []T {
 	return result
 }
 
-// SliceRef returns the internal slice reference(zero copy, O(1))
-// Warning: Don't modify the returned slice, it will break the Set's data consistency
-// If you need to modify, use Slice() to get a copy
+// SliceRef returns the internal slice reference (zero copy, O(1)).
+// Warning: Don't modify the returned slice, it will break the Set's data consistency.
+// If you need to modify, use Slice() to get a copy.
 func (s *orderedSet[T]) SliceRef() []T {
 	return s.elems
 }
@@ -167,3 +167,4 @@ func (s *orderedSet[T]) String() string {
 	b.WriteString("}")
 	return b.String()
 }
+
