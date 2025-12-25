@@ -79,15 +79,13 @@ func (s set[T]) Join(sep string) string {
 	}
 
 	var b strings.Builder
-	b.Grow(s.Len()*2 - 1)
-
-	i := 0
+	first := true
 	for item := range s {
-		b.WriteString(fmt.Sprintf("%v", item))
-		i++
-		if i < s.Len() {
+		if !first {
 			b.WriteString(sep)
 		}
+		fmt.Fprintf(&b, "%v", item)
+		first = false
 	}
 	return b.String()
 }
