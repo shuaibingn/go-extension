@@ -135,12 +135,16 @@ om.ForEach(func(key string, value int) bool {
 ```
 go-extension/
 ├── go.mod
+├── LICENSE
 ├── README.md
-├── set.go           # Set 实现
-├── ordered_set.go   # OrderedSet 实现
-└── ordered_map.go   # OrderedMap 实现
+├── set.go               # Set 实现
+├── set_test.go          # Set 测试
+├── ordered_set.go       # OrderedSet 实现
+├── ordered_set_test.go  # OrderedSet 测试
+├── ordered_map.go       # OrderedMap 实现
+└── ordered_map_test.go  # OrderedMap 测试
 ```
 
 ## License
 
-MIT License
+[MIT License](LICENSE)
