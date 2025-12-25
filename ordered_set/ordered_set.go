@@ -19,6 +19,7 @@ type OrderedSet[T baseValue] interface {
 	Len() int
 	Join(sep string) string
 	Slice() []T
+	SliceRef() []T
 	ForEach(fn func(index int, item T) bool)
 }
 
@@ -92,17 +93,28 @@ func (s *orderedSet[T]) Index(item T) int {
 }
 
 func (s *orderedSet[T]) Remove(items ...T) {
+	if len(items) == 0 {
+		return
+	}
+
 	for _, item := range items {
 		delete(s.elemMap, item)
 	}
 
-	newElems := make([]T, 0, len(s.elems))
+	n := 0
 	for _, elem := range s.elems {
 		if _, ok := s.elemMap[elem]; ok {
-			newElems = append(newElems, elem)
+			s.elems[n] = elem
+			n++
 		}
 	}
-	s.elems = newElems
+
+	// 清除残留引用，防止内存泄漏
+	var zero T
+	for i := n; i < len(s.elems); i++ {
+		s.elems[i] = zero
+	}
+	s.elems = s.elems[:n]
 }
 
 func (s *orderedSet[T]) Len() int {
@@ -136,6 +148,13 @@ func (s *orderedSet[T]) Slice() []T {
 	result := make([]T, len(s.elems))
 	copy(result, s.elems)
 	return result
+}
+
+// SliceRef returns the internal slice reference(zero copy, O(1))
+// Warning: Don't modify the returned slice, it will break the Set's data consistency
+// If you need to modify, use Slice() to get a copy
+func (s *orderedSet[T]) SliceRef() []T {
+	return s.elems
 }
 
 func (s *orderedSet[T]) String() string {

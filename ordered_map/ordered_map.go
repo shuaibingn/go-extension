@@ -13,7 +13,7 @@ type OrderedMap[K comparable, V any] interface {
 	Values() []V
 	Clear()
 	Len() int
-	Iterator() <-chan listValue[K, V]
+	ForEach(fn func(key K, value V) bool)
 }
 
 type orderedMap[K comparable, V any] struct {
@@ -96,13 +96,13 @@ func (om *orderedMap[K, V]) Len() int {
 	return om.list.Len()
 }
 
-func (om *orderedMap[K, V]) Iterator() <-chan listValue[K, V] {
-	ch := make(chan listValue[K, V])
-	go func() {
-		for e := om.list.Front(); e != nil; e = e.Next() {
-			ch <- listValue[K, V]{Key: e.Value.(*listValue[K, V]).Key, Value: e.Value.(*listValue[K, V]).Value}
+// ForEach iterates over all key-value pairs in order.
+// The iteration stops if fn returns false.
+func (om *orderedMap[K, V]) ForEach(fn func(key K, value V) bool) {
+	for e := om.list.Front(); e != nil; e = e.Next() {
+		lv := e.Value.(*listValue[K, V])
+		if !fn(lv.Key, lv.Value) {
+			break
 		}
-		close(ch)
-	}()
-	return ch
+	}
 }
