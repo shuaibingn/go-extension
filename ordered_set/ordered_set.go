@@ -25,7 +25,7 @@ type OrderedSet[T baseValue] interface {
 
 type orderedSet[T baseValue] struct {
 	elems   []T
-	elemMap map[T]struct{}
+	elemMap map[T]int
 }
 
 func NewOrderedSet[T baseValue](items ...T) OrderedSet[T] {
@@ -36,15 +36,15 @@ func NewOrderedSet[T baseValue](items ...T) OrderedSet[T] {
 
 func (s *orderedSet[T]) Add(items ...T) {
 	if s.elemMap == nil {
-		s.elemMap = make(map[T]struct{}, len(items))
+		s.elemMap = make(map[T]int, len(items))
 	}
 
 	for _, item := range items {
 		if _, ok := s.elemMap[item]; ok {
 			continue
 		}
+		s.elemMap[item] = len(s.elems)
 		s.elems = append(s.elems, item)
-		s.elemMap[item] = struct{}{}
 	}
 }
 
@@ -80,14 +80,8 @@ func (s *orderedSet[T]) Last() (T, bool) {
 }
 
 func (s *orderedSet[T]) Index(item T) int {
-	if _, ok := s.elemMap[item]; !ok {
-		return -1
-	}
-
-	for i, elem := range s.elems {
-		if elem == item {
-			return i
-		}
+	if idx, ok := s.elemMap[item]; ok {
+		return idx
 	}
 	return -1
 }
@@ -97,19 +91,27 @@ func (s *orderedSet[T]) Remove(items ...T) {
 		return
 	}
 
+	toRemove := make(map[T]struct{}, len(items))
 	for _, item := range items {
-		delete(s.elemMap, item)
+		if _, ok := s.elemMap[item]; ok {
+			toRemove[item] = struct{}{}
+			delete(s.elemMap, item)
+		}
+	}
+
+	if len(toRemove) == 0 {
+		return
 	}
 
 	n := 0
 	for _, elem := range s.elems {
-		if _, ok := s.elemMap[elem]; ok {
+		if _, removed := toRemove[elem]; !removed {
 			s.elems[n] = elem
+			s.elemMap[elem] = n
 			n++
 		}
 	}
 
-	// 清除残留引用，防止内存泄漏
 	var zero T
 	for i := n; i < len(s.elems); i++ {
 		s.elems[i] = zero
